@@ -92,3 +92,25 @@ func TestEncodeString2DArray(t *testing.T) {
 		}
 	}
 }
+
+func TestParseCmd(t *testing.T) {
+	cases := map[string]core.Command{
+		"*3\r\n$3\r\nput\r\n$5\r\nhello\r\n$5\r\nworld\r\n": core.Command{
+			Cmd:  "PUT",
+			Args: []string{"hello", "world"},
+		}}
+	for k, v := range cases {
+		cmd, _ := core.ParseCmd([]byte(k))
+		if cmd.Cmd != v.Cmd {
+			t.Fail()
+		}
+		if len(cmd.Args) != len(v.Args) {
+			t.Fail()
+		}
+		for i := 0; i < len(cmd.Args); i++ {
+			if cmd.Args[i] != v.Args[i] {
+				t.Fail()
+			}
+		}
+	}
+}

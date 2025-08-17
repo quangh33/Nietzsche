@@ -2,23 +2,26 @@ package server
 
 import (
 	"Nietzsche/internal/config"
+	"Nietzsche/internal/constant"
+	"Nietzsche/internal/core"
 	"Nietzsche/internal/core/io_multiplexing"
 	"io"
 	"log"
 	"net"
 	"syscall"
+	"time"
 )
 
-func readCommand(fd int) (string, error) {
+func readCommand(fd int) (*core.Command, error) {
 	var buf = make([]byte, 512)
 	n, err := syscall.Read(fd, buf)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if n == 0 {
-		return "", io.EOF
+		return nil, io.EOF
 	}
-	return string(buf[:n]), nil
+	return core.ParseCmd(buf)
 }
 
 func respond(data string, fd int) error {
@@ -65,7 +68,12 @@ func RunIoMultiplexingServer() {
 	}
 
 	var events = make([]io_multiplexing.Event, config.MaxConnection)
+	var lastActiveExpireExecTime = time.Now()
 	for {
+		if time.Now().After(lastActiveExpireExecTime.Add(constant.ActiveExpireFrequency)) {
+			core.ActiveDeleteExpiredKeys()
+			lastActiveExpireExecTime = time.Now()
+		}
 		// wait for file descriptors in the monitoring list to be ready for I/O
 		// it is a blocking call.
 		events, err = ioMultiplexer.Wait()
@@ -92,7 +100,6 @@ func RunIoMultiplexingServer() {
 				}
 			} else {
 				cmd, err := readCommand(events[i].Fd)
-				// log.Println("command: ", cmd)
 				if err != nil {
 					if err == io.EOF || err == syscall.ECONNRESET {
 						log.Println("client disconnected")
@@ -102,7 +109,7 @@ func RunIoMultiplexingServer() {
 					log.Println("read error:", err)
 					continue
 				}
-				if err = respond(cmd, events[i].Fd); err != nil {
+				if err = core.ExecuteAndResponse(cmd, events[i].Fd); err != nil {
 					log.Println("err write:", err)
 				}
 			}
