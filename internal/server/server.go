@@ -70,6 +70,7 @@ func RunIoMultiplexingServer() {
 	var events = make([]io_multiplexing.Event, config.MaxConnection)
 	var lastActiveExpireExecTime = time.Now()
 	for {
+		// Check last execution time and call if it is more than 100ms ago.
 		if time.Now().After(lastActiveExpireExecTime.Add(constant.ActiveExpireFrequency)) {
 			core.ActiveDeleteExpiredKeys()
 			lastActiveExpireExecTime = time.Now()
