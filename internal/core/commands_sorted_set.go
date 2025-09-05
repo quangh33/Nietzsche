@@ -22,7 +22,7 @@ func cmdZADD(args []string) []byte {
 
 	zset, exist := zsetStore[key]
 	if !exist {
-		zset = data_structure.NewSortedSet(constant.DefaultBPlusTreeDegree)
+		zset = data_structure.CreateZSet()
 		zsetStore[key] = zset
 	}
 
@@ -51,8 +51,8 @@ func cmdZSCORE(args []string) []byte {
 	if !exist {
 		return constant.RespNil
 	}
-	score, exist := zset.GetScore(member)
-	if !exist {
+	ret, score := zset.GetScore(member)
+	if ret == 0 {
 		return constant.RespNil
 	}
 	return Encode(fmt.Sprintf("%f", score), false)
@@ -67,6 +67,6 @@ func cmdZRANK(args []string) []byte {
 	if !exist {
 		return constant.RespNil
 	}
-	rank := zset.GetRank(member)
+	rank, _ := zset.GetRank(member, false)
 	return Encode(rank, false)
 }
