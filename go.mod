@@ -2,7 +2,10 @@ module Nietzsche
 
 go 1.21rc3
 
-require github.com/stretchr/testify v1.10.0
+require (
+	github.com/spaolacci/murmur3 v1.1.0
+	github.com/stretchr/testify v1.10.0
+)
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
