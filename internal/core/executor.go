@@ -2,6 +2,8 @@ package core
 
 import (
 	"Nietzsche/internal/constant"
+	"Nietzsche/internal/data_structure"
+	"bytes"
 	"errors"
 	"fmt"
 	"strconv"
@@ -85,11 +87,21 @@ func cmdTTL(args []string) []byte {
 	return Encode(int64(remainMs/1000), false)
 }
 
+func cmdINFO(args []string) []byte {
+	var info []byte
+	buf := bytes.NewBuffer(info)
+	buf.WriteString("# Keyspace\r\n")
+	buf.WriteString(fmt.Sprintf("db0:keys=%d,expires=0,avg_ttl=0\r\n", data_structure.HashKeySpaceStat.Key))
+	return Encode(buf.String(), false)
+}
+
 // ExecuteAndResponse given a Command, executes it and responses
 func ExecuteAndResponse(cmd *Command, connFd int) error {
 	var res []byte
 
 	switch cmd.Cmd {
+	case "INFO":
+		res = cmdINFO(cmd.Args)
 	case "PING":
 		res = cmdPING(cmd.Args)
 	case "SET":

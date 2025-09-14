@@ -1,6 +1,10 @@
 package data_structure
 
-import "time"
+import (
+	"Nietzsche/internal/config"
+	"log"
+	"time"
+)
 
 type Obj struct {
 	Value interface{}
@@ -21,6 +25,10 @@ func CreateDict() *Dict {
 
 func (d *Dict) GetExpireDictStore() map[string]uint64 {
 	return d.expiredDictStore
+}
+
+func (d *Dict) GetDictStore() map[string]*Obj {
+	return d.dictStore
 }
 
 func (d *Dict) NewObj(key string, value interface{}, ttlMs int64) *Obj {
@@ -61,14 +69,42 @@ func (d *Dict) Get(k string) *Obj {
 	return v
 }
 
+func (d *Dict) evictRandom() {
+	evictCount := int64(config.EvictionRatio * float64(config.MaxKeyNumber))
+	log.Print("trigger random eviction")
+	for k := range d.dictStore {
+		d.Del(k)
+		evictCount--
+		if evictCount == 0 {
+			break
+		}
+	}
+}
+
+func (d *Dict) evict() {
+	switch config.EvictionPolicy {
+	case "allkeys-random":
+		d.evictRandom()
+	}
+}
+
 func (d *Dict) Set(k string, obj *Obj) {
+	if len(d.dictStore) == config.MaxKeyNumber {
+		d.evict()
+	}
+	v := d.dictStore[k]
+	if v == nil {
+		HashKeySpaceStat.Key++
+	}
 	d.dictStore[k] = obj
 }
 
 func (d *Dict) Del(k string) bool {
+	log.Printf("Delete key %s", k)
 	if _, exist := d.dictStore[k]; exist {
 		delete(d.dictStore, k)
 		delete(d.expiredDictStore, k)
+		HashKeySpaceStat.Key--
 		return true
 	}
 	return false
