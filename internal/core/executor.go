@@ -17,6 +17,7 @@ func cmdPING(args []string) []byte {
 		return Encode(errors.New("ERR wrong number of arguments for 'ping' command"), false)
 	}
 
+	time.Sleep(10 * time.Second)
 	if len(args) == 0 {
 		res = Encode("PONG", true)
 	} else {
