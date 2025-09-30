@@ -1,10 +1,13 @@
 module Nietzsche
 
-go 1.21rc3
+go 1.24.0
+
+toolchain go1.24.7
 
 require (
 	github.com/spaolacci/murmur3 v1.1.0
 	github.com/stretchr/testify v1.10.0
+	golang.org/x/sys v0.36.0
 )
 
 require (

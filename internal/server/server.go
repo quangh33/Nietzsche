@@ -107,11 +107,6 @@ func NewServer() *Server {
 	return s
 }
 
-func response(fd int, respCh <-chan []byte) {
-	res := <-respCh
-	syscall.Write(fd, res)
-}
-
 func (s *Server) Start(wg *sync.WaitGroup) {
 	defer wg.Done()
 	// Start all I/O handler event loops

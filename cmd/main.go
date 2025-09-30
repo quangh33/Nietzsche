@@ -16,7 +16,8 @@ func main() {
 
 	s := server.NewServer()
 	//go server.RunIoMultiplexingServer(&wg)
-	go s.Start(&wg)
+	//go s.Start(&wg)
+	go s.StartMultiListeners(&wg)
 	go server.WaitForSignal(&wg, signals)
 	wg.Wait()
 }

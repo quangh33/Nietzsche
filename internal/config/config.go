@@ -10,3 +10,5 @@ var EvictionPolicy string = "allkeys-lru"
 
 var EpoolMaxSize = 5
 var EpoolLruSampleSize = 5
+
+var ListenerNumber int = 3
