@@ -51,6 +51,20 @@ func (w *Worker) cmdSET(args []string) []byte {
 	return constant.RespOk
 }
 
+func (w *Worker) cmdPING(args []string) []byte {
+	var res []byte
+	if len(args) > 1 {
+		return Encode(errors.New("ERR wrong number of arguments for 'ping' command"), false)
+	}
+
+	if len(args) == 0 {
+		res = Encode("PONG", true)
+	} else {
+		res = Encode(args[0], false)
+	}
+	return res
+}
+
 func (w *Worker) cmdGET(args []string) []byte {
 	if len(args) != 1 {
 		return Encode(errors.New("(error) ERR wrong number of arguments for 'GET' command"), false)
@@ -78,6 +92,8 @@ func (w *Worker) ExecuteAndResponse(task *Task) {
 		res = w.cmdSET(task.Command.Args)
 	case "GET":
 		res = w.cmdGET(task.Command.Args)
+	case "PING":
+		res = w.cmdPING(task.Command.Args)
 	default:
 		res = []byte(fmt.Sprintf("-CMD NOT FOUND\r\n"))
 	}
