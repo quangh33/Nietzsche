@@ -17,7 +17,6 @@ func cmdPING(args []string) []byte {
 		return Encode(errors.New("ERR wrong number of arguments for 'ping' command"), false)
 	}
 
-	time.Sleep(10 * time.Second)
 	if len(args) == 0 {
 		res = Encode("PONG", true)
 	} else {
@@ -51,7 +50,6 @@ func cmdGET(args []string) []byte {
 	if len(args) != 1 {
 		return Encode(errors.New("(error) ERR wrong number of arguments for 'GET' command"), false)
 	}
-
 	key := args[0]
 	obj := dictStore.Get(key)
 	if obj == nil {

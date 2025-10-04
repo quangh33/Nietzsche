@@ -3,7 +3,7 @@ package config
 var Protocol = "tcp"
 var Port = ":3000"
 var MaxConnection = 20000
-var MaxKeyNumber int = 10
+var MaxKeyNumber int = 1000000
 var EvictionRatio = 0.1
 
 var EvictionPolicy string = "allkeys-lru"
@@ -11,4 +11,4 @@ var EvictionPolicy string = "allkeys-lru"
 var EpoolMaxSize = 5
 var EpoolLruSampleSize = 5
 
-var ListenerNumber int = 3
+var ListenerNumber int = 2

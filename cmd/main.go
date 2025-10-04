@@ -2,6 +2,9 @@ package main
 
 import (
 	"Nietzsche/internal/server"
+	"log"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"sync"
@@ -16,8 +19,11 @@ func main() {
 
 	s := server.NewServer()
 	//go server.RunIoMultiplexingServer(&wg)
-	//go s.Start(&wg)
-	go s.StartMultiListeners(&wg)
+	go s.StartSingleListener(&wg)
+	//go s.StartMultiListeners(&wg)
 	go server.WaitForSignal(&wg, signals)
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
 	wg.Wait()
 }

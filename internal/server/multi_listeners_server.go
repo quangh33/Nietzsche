@@ -44,28 +44,13 @@ func (s *Server) StartMultiListeners(wg *sync.WaitGroup) {
 					continue
 				}
 
-				// get the file descriptor of the connection
-				tcpConn, ok := conn.(*net.TCPConn)
-				if !ok {
-					log.Println("Accepted connection is not a TCP connection")
-					conn.Close()
-					continue
-				}
-				connFile, err := tcpConn.File()
-				if err != nil {
-					log.Printf("Failed to get file from TCP connection: %v", err)
-					conn.Close()
-					continue
-				}
-				connFd := int(connFile.Fd())
-
-				// forward the new connection to an I/O handler in a round-robin manner
 				handler := s.ioHandlers[s.nextIOHandler%s.numIOHandlers]
 				s.nextIOHandler++
 
-				if err := handler.AddConn(connFd); err != nil {
-					log.Printf("Failed to add connection fd %d to I/O handler %d: %v", connFd, handler.id, err)
-					_ = syscall.Close(connFd)
+				if err := handler.AddConn(conn); err != nil {
+					log.Printf("Failed to add connection to I/O handler %d: %v", handler.id, err)
+					// If adding fails, close the connection properly
+					conn.Close()
 				}
 			}
 		}()

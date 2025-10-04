@@ -5,7 +5,6 @@ import (
 	"Nietzsche/internal/data_structure"
 	"errors"
 	"fmt"
-	"log"
 	"strconv"
 )
 
@@ -69,7 +68,6 @@ func (w *Worker) cmdGET(args []string) []byte {
 	if len(args) != 1 {
 		return Encode(errors.New("(error) ERR wrong number of arguments for 'GET' command"), false)
 	}
-
 	key := args[0]
 	obj := w.dictStore.Get(key)
 	if obj == nil {
@@ -84,7 +82,7 @@ func (w *Worker) cmdGET(args []string) []byte {
 }
 
 func (w *Worker) ExecuteAndResponse(task *Task) {
-	log.Printf("worker %d executes command %s", w.id, task.Command)
+	//log.Printf("worker %d executes command %s", w.id, task.Command)
 	var res []byte
 
 	switch task.Command.Cmd {

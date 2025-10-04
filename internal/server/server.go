@@ -32,6 +32,16 @@ func readCommand(fd int) (*core.Command, error) {
 	return core.ParseCmd(buf)
 }
 
+func readCommandConn(conn net.Conn) (*core.Command, error) {
+	var buf = make([]byte, 512)
+	// Use the Read method from the net.Conn interface
+	n, err := conn.Read(buf)
+	if err != nil {
+		return nil, err // This will properly handle io.EOF
+	}
+	return core.ParseCmd(buf[:n])
+}
+
 func respond(data string, fd int) error {
 	if _, err := syscall.Write(fd, []byte(data)); err != nil {
 		return err
@@ -86,8 +96,8 @@ func (s *Server) dispatch(task *core.Task) {
 
 func NewServer() *Server {
 	numCores := runtime.NumCPU()
-	numIOHandlers := numCores / 3
-	numWorkers := numCores - numIOHandlers
+	numIOHandlers := numCores / 2
+	numWorkers := numCores / 2
 	log.Printf("Initializing server with %d workers and %d io handler\n", numWorkers, numIOHandlers)
 
 	s := &Server{
@@ -109,55 +119,6 @@ func NewServer() *Server {
 		s.ioHandlers[i] = handler
 	}
 	return s
-}
-
-func (s *Server) Start(wg *sync.WaitGroup) {
-	defer wg.Done()
-	// Start all I/O handler event loops
-	for _, handler := range s.ioHandlers {
-		go handler.Run()
-	}
-
-	// Set up listener socket
-	listener, err := net.Listen(config.Protocol, config.Port)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer listener.Close()
-
-	log.Printf("Server listening on %s", config.Port)
-
-	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			log.Printf("Failed to acccept connection: %v", err)
-			continue
-		}
-
-		// get the file descriptor of the connection
-		tcpConn, ok := conn.(*net.TCPConn)
-		if !ok {
-			log.Println("Accepted connection is not a TCP connection")
-			conn.Close()
-			continue
-		}
-		connFile, err := tcpConn.File()
-		if err != nil {
-			log.Printf("Failed to get file from TCP connection: %v", err)
-			conn.Close()
-			continue
-		}
-		connFd := int(connFile.Fd())
-
-		// forward the new connection to an I/O handler in a round-robin manner
-		handler := s.ioHandlers[s.nextIOHandler%s.numIOHandlers]
-		s.nextIOHandler++
-
-		if err := handler.AddConn(connFd); err != nil {
-			log.Printf("Failed to add connection fd %d to I/O handler %d: %v", connFd, handler.id, err)
-			_ = syscall.Close(connFd)
-		}
-	}
 }
 
 func RunIoMultiplexingServer(wg *sync.WaitGroup) {

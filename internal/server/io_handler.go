@@ -5,6 +5,7 @@ import (
 	"Nietzsche/internal/core/io_multiplexing"
 	"io"
 	"log"
+	"net"
 	"sync"
 	"syscall"
 )
@@ -14,6 +15,7 @@ type IOHandler struct {
 	ioMultiplexer io_multiplexing.IOMultiplexer
 	mu            sync.Mutex
 	server        *Server
+	conns         map[int]net.Conn
 }
 
 func NewIOHandler(id int, server *Server) (*IOHandler, error) {
@@ -26,17 +28,43 @@ func NewIOHandler(id int, server *Server) (*IOHandler, error) {
 		id:            id,
 		ioMultiplexer: multiplexer,
 		server:        server,
+		conns:         make(map[int]net.Conn), // map from fd to corresponding connection
 	}, nil
 }
 
-func (h *IOHandler) AddConn(connFd int) error {
+func (h *IOHandler) AddConn(conn net.Conn) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	log.Printf("I/O Handler %d is monitoring fd %d", h.id, connFd)
-	return h.ioMultiplexer.Monitor(io_multiplexing.Event{
-		Fd: connFd,
-		Op: io_multiplexing.OpRead,
+	tcpConn := conn.(*net.TCPConn)
+	rawConn, err := tcpConn.SyscallConn()
+	if err != nil {
+		return err
+	}
+
+	var connFd int
+	err = rawConn.Control(func(fd uintptr) {
+		connFd = int(fd)
+		//log.Printf("I/O Handler %d is monitoring fd %d", h.id, connFd)
+		// Store the connection object so it's not garbage collected
+		h.conns[connFd] = conn
+		// Add to epoll
+		h.ioMultiplexer.Monitor(io_multiplexing.Event{
+			Fd: connFd,
+			Op: io_multiplexing.OpRead,
+		})
 	})
+
+	return err
+}
+
+func (h *IOHandler) closeConn(fd int) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	if conn, ok := h.conns[fd]; ok {
+		conn.Close()
+		delete(h.conns, fd)
+	}
 }
 
 func (h *IOHandler) Run() {
@@ -49,14 +77,22 @@ func (h *IOHandler) Run() {
 
 		for _, event := range events {
 			connFd := event.Fd
-			cmd, err := readCommand(connFd)
+			h.mu.Lock()
+			conn, ok := h.conns[connFd]
+			h.mu.Unlock()
+			if !ok {
+				// Connection might have been closed by a concurrent write error
+				continue
+			}
+			//cmd, err := readCommand(connFd)
+			cmd, err := readCommandConn(conn)
 			if err != nil {
 				if err == io.EOF || err == syscall.ECONNRESET {
-					log.Println("client disconnected")
-					_ = syscall.Close(connFd)
-					continue
+					//log.Printf("Client disconnected (fd: %d)", connFd)
+				} else {
+					log.Printf("Read error on fd %d: %v", connFd, err)
 				}
-				log.Println("read error:", err)
+				h.closeConn(connFd) // <-- Use our new closing function
 				continue
 			}
 
@@ -67,7 +103,7 @@ func (h *IOHandler) Run() {
 			}
 			h.server.dispatch(task)
 			res := <-replyCh
-			syscall.Write(connFd, res)
+			conn.Write(res)
 		}
 	}
 }
