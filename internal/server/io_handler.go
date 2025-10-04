@@ -32,6 +32,7 @@ func NewIOHandler(id int, server *Server) (*IOHandler, error) {
 	}, nil
 }
 
+// Add connection to the handler's epoll monitoring list
 func (h *IOHandler) AddConn(conn net.Conn) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -41,10 +42,11 @@ func (h *IOHandler) AddConn(conn net.Conn) error {
 		return err
 	}
 
+	// get the fd from connection and add it to the monitoring list for read operation
 	var connFd int
 	err = rawConn.Control(func(fd uintptr) {
 		connFd = int(fd)
-		//log.Printf("I/O Handler %d is monitoring fd %d", h.id, connFd)
+		log.Printf("I/O Handler %d is monitoring fd %d", h.id, connFd)
 		// Store the connection object so it's not garbage collected
 		h.conns[connFd] = conn
 		// Add to epoll
@@ -70,6 +72,7 @@ func (h *IOHandler) closeConn(fd int) {
 func (h *IOHandler) Run() {
 	log.Printf("I/O Handler %d started", h.id)
 	for {
+		// wait for data from any of the fd in the monitoring list
 		events, err := h.ioMultiplexer.Wait()
 		if err != nil {
 			continue
@@ -101,6 +104,7 @@ func (h *IOHandler) Run() {
 				Command: cmd,
 				ReplyCh: replyCh,
 			}
+			// dispatch the command to the corresponding Worker
 			h.server.dispatch(task)
 			res := <-replyCh
 			conn.Write(res)
