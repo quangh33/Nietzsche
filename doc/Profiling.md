@@ -12,5 +12,5 @@ go run main.go
 go tool pprof http://localhost:6060/debug/pprof/profile\?seconds=20
 ```
 
-4. inside pprof:
+4. Inside pprof CLI:
 - type web to see the visualization
