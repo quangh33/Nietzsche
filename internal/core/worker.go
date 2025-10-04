@@ -16,7 +16,7 @@ type Task struct {
 type Worker struct {
 	id        int
 	dictStore *data_structure.Dict
-	TaskCh    chan *Task // Receives tasks from the I/O goroutine
+	TaskCh    chan *Task // Receives tasks from the I/O handler
 }
 
 func NewWorker(id int, bufferSize int) *Worker {
@@ -25,7 +25,7 @@ func NewWorker(id int, bufferSize int) *Worker {
 		dictStore: data_structure.CreateDict(),
 		TaskCh:    make(chan *Task, bufferSize),
 	}
-	go w.run()
+	go w.run() // new routine
 	return w
 }
 

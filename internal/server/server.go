@@ -79,6 +79,10 @@ func (s *Server) getPartitionID(key string) int {
 	return int(hasher.Sum32()) % s.numWorkers
 }
 
+// set abc 123
+// abc -> 1
+// get abc
+// abc -> 1
 func (s *Server) dispatch(task *core.Task) {
 	// Commands like PING etc., don't have a key.
 	// We can send them to any worker.
@@ -95,9 +99,9 @@ func (s *Server) dispatch(task *core.Task) {
 }
 
 func NewServer() *Server {
-	numCores := runtime.NumCPU()
-	numIOHandlers := numCores / 2
-	numWorkers := numCores / 2
+	numCores := runtime.NumCPU()  // 8
+	numIOHandlers := numCores / 2 // 4
+	numWorkers := numCores / 2    // 4
 	log.Printf("Initializing server with %d workers and %d io handler\n", numWorkers, numIOHandlers)
 
 	s := &Server{

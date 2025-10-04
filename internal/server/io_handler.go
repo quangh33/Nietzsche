@@ -15,7 +15,7 @@ type IOHandler struct {
 	ioMultiplexer io_multiplexing.IOMultiplexer
 	mu            sync.Mutex
 	server        *Server
-	conns         map[int]net.Conn
+	conns         map[int]net.Conn // map from fd -> connection
 }
 
 func NewIOHandler(id int, server *Server) (*IOHandler, error) {
