@@ -4,7 +4,7 @@ import (
 	"Nietzsche/internal/server"
 	"log"
 	"net/http"
-	_ "net/http/pprof"
+	_ "net/http/pprof" // for profiling
 	"os"
 	"os/signal"
 	"sync"
@@ -22,6 +22,8 @@ func main() {
 	go s.StartSingleListener(&wg)
 	//go s.StartMultiListeners(&wg)
 	go server.WaitForSignal(&wg, signals)
+
+	// Expose the /debug/pprof endpoints on a separate goroutine
 	go func() {
 		log.Println(http.ListenAndServe("localhost:6060", nil))
 	}()
